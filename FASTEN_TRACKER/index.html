@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#070709">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='80'>💧</text></svg>">
+<title>Fasten Companion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #070709;
+  --surface: #111114;
+  --surface2: #1a1a1f;
+  --surface3: #222228;
+  --border: #2a2a32;
+  --text: #e4e4ea;
+  --text2: #8888a0;
+  --text3: #55556a;
+  --accent: #6ee7b7;
+  --accent2: #34d399;
+  --warn: #fbbf24;
+  --danger: #f87171;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --cyan: #22d3ee;
+  --radius: 14px;
+  --font: 'DM Sans', -apple-system, sans-serif;
+  --mono: 'DM Mono', 'SF Mono', monospace;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; overflow:hidden; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  overscroll-behavior: none;
+}
+
+.app {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+}
+
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 16px 100px;
+}
+
+/* Tab bar */
+.tab-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(7,7,9,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  padding: 6px 8px calc(6px + var(--safe-bottom));
+  z-index: 100;
+}
+.tab-btn {
+  flex: 1; border: none; background: none;
+  color: var(--text3); font-family: var(--font);
+  font-size: 10px; font-weight: 500;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 4px; cursor: pointer; transition: color 0.2s;
+  border-radius: 8px;
+}
+.tab-btn.active { color: var(--accent); }
+.tab-btn .icon { font-size: 20px; line-height: 1; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 12px;
+  animation: fadeUp 0.3s ease;
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(10px); }
+  to { opacity:1; transform:translateY(0); }
+}
+.card-accent { border-left: 3px solid var(--accent); }
+
+.label {
+  font-size: 10px; font-weight: 600; letter-spacing: 2.5px;
+  color: var(--text3); text-transform: uppercase; margin-bottom: 10px;
+}
+
+/* Timer display */
+.timer-display {
+  font-family: var(--mono);
+  font-size: 42px;
+  font-weight: 500;
+  letter-spacing: 2px;
+  text-align: center;
+  background: linear-gradient(135deg, var(--text), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1.1;
+}
+.timer-sub {
+  font-size: 12px; color: var(--text2); text-align: center;
+  margin-top: 4px; font-family: var(--mono);
+}
+
+/* Progress bar */
+.progress-track {
+  width: 100%; height: 6px; background: var(--surface2);
+  border-radius: 3px; overflow: hidden; margin-top: 14px;
+}
+.progress-fill {
+  height: 100%; border-radius: 3px;
+  transition: width 1s linear;
+}
+
+/* Day dots */
+.day-dots {
+  display: flex; gap: 6px; justify-content: center; margin-top: 14px;
+}
+.day-dot {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; font-family: var(--mono);
+  border: 2px solid var(--border); color: var(--text3);
+  transition: all 0.3s;
+}
+.day-dot.done { border-color: var(--accent); color: var(--accent); background: rgba(110,231,183,0.08); }
+.day-dot.current { border-color: var(--accent); color: var(--bg); background: var(--accent); box-shadow: 0 0 16px rgba(110,231,183,0.3); }
+
+/* Motivation box */
+.motiv-box {
+  background: linear-gradient(135deg, rgba(110,231,183,0.06), rgba(96,165,250,0.04));
+  border: 1px solid rgba(110,231,183,0.12);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 12px;
+}
+.motiv-text {
+  font-size: 15px; line-height: 1.65; color: var(--text);
+  font-style: italic;
+}
+.motiv-refresh {
+  margin-top: 12px; border: 1px solid var(--border);
+  background: none; color: var(--text2); font-family: var(--font);
+  font-size: 12px; padding: 6px 14px; border-radius: 8px; cursor: pointer;
+}
+
+/* Mood buttons */
+.mood-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.mood-btn {
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text); font-family: var(--font); font-size: 13px;
+  padding: 10px 6px; border-radius: 10px; cursor: pointer;
+  transition: all 0.2s; text-align: center;
+}
+.mood-btn:active { transform: scale(0.95); background: var(--surface3); }
+
+/* Phase item */
+.phase-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.phase-item:last-child { border-bottom: none; }
+.phase-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.phase-emoji { font-size: 22px; }
+.phase-name { font-size: 14px; font-weight: 600; }
+.phase-tag {
+  font-size: 9px; font-weight: 700; padding: 2px 8px;
+  border-radius: 10px; letter-spacing: 0.5px;
+}
+.phase-desc { font-size: 12.5px; color: var(--text2); line-height: 1.6; margin-bottom: 6px; }
+.phase-tip { font-size: 11.5px; color: var(--accent); opacity: 0.8; }
+
+/* Elektrolyte */
+.elec-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.elec-row:last-child { border-bottom: none; }
+.elec-icon { font-size: 22px; }
+.elec-name { font-size: 13px; font-weight: 500; }
+.elec-detail { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* Settings */
+.setting-group { margin-bottom: 20px; }
+.setting-label { font-size: 13px; font-weight: 500; margin-bottom: 8px; }
+.setting-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+input[type="date"], input[type="time"], input[type="number"], select {
+  width: 100%; padding: 12px 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text); font-family: var(--font);
+  font-size: 15px; outline: none; -webkit-appearance: none;
+}
+input:focus, select:focus { border-color: var(--accent); }
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.btn-primary {
+  width: 100%; padding: 14px; border: none; border-radius: 12px;
+  background: var(--accent); color: var(--bg); font-family: var(--font);
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: opacity 0.2s;
+}
+.btn-primary:active { opacity: 0.8; }
+.btn-secondary {
+  width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 12px;
+  background: none; color: var(--text2); font-family: var(--font);
+  font-size: 13px; cursor: pointer;
+}
+.btn-danger {
+  width: 100%; padding: 12px; border: 1px solid rgba(248,113,113,0.3); border-radius: 12px;
+  background: rgba(248,113,113,0.06); color: var(--danger); font-family: var(--font);
+  font-size: 13px; cursor: pointer; margin-top: 8px;
+}
+
+/* Toggle */
+.toggle-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.toggle-row:last-child { border-bottom: none; }
+.toggle {
+  width: 48px; height: 28px; border-radius: 14px;
+  background: var(--surface3); border: none; cursor: pointer;
+  position: relative; transition: background 0.2s;
+}
+.toggle.on { background: var(--accent); }
+.toggle::after {
+  content: ''; position: absolute;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: white; top: 3px; left: 3px;
+  transition: transform 0.2s;
+}
+.toggle.on::after { transform: translateX(20px); }
+
+/* List items */
+.list-item {
+  padding: 10px 0; font-size: 13px; color: var(--text2);
+  border-bottom: 1px solid rgba(42,42,50,0.5); line-height: 1.5;
+}
+.list-item:last-child { border-bottom: none; }
+
+/* Warning items */
+.warn-item {
+  padding: 8px 0; font-size: 12.5px; color: var(--warn);
+  border-bottom: 1px solid rgba(42,42,50,0.5);
+}
+.warn-item:last-child { border-bottom: none; }
+
+/* Header area */
+.header {
+  text-align: center; padding: 8px 0 20px;
+}
+.header-title {
+  font-size: 13px; font-weight: 300; letter-spacing: 6px;
+  color: var(--text3); text-transform: uppercase;
+}
+.header-dates {
+  font-size: 20px; font-weight: 700; margin-top: 4px;
+  letter-spacing: -0.3px;
+}
+.header-sub {
+  font-size: 11px; color: var(--text3); margin-top: 4px;
+  font-family: var(--mono);
+}
+
+/* Setup screen */
+.setup-hero {
+  text-align: center; padding: 40px 0 30px;
+}
+.setup-emoji { font-size: 56px; margin-bottom: 12px; }
+.setup-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+.setup-sub { font-size: 13px; color: var(--text2); }
+
+/* Finished */
+.finish-card {
+  background: linear-gradient(135deg, rgba(110,231,183,0.1), rgba(52,211,153,0.05));
+  border: 1px solid rgba(110,231,183,0.2);
+  text-align: center; padding: 30px 20px;
+}
+.finish-emoji { font-size: 52px; margin-bottom: 10px; }
+.finish-title { font-size: 20px; font-weight: 700; color: var(--accent); }
+.finish-sub { font-size: 13px; color: var(--text2); margin-top: 6px; line-height: 1.6; }
+
+.disclaimer {
+  text-align: center; font-size: 10px; color: var(--text3);
+  padding: 16px 0; line-height: 1.5;
+}
+
+/* Notification pulse */
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(110,231,183,0.3); }
+  50% { box-shadow: 0 0 20px 4px rgba(110,231,183,0.15); }
+}
+.pulse { animation: pulse 3s infinite; }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────
+const PHASES_7 = [
+  { day:1, name:"Glykogen-Abbau", emoji:"🔥", color:"#f59e0b", desc:"Dein Körper verbrennt die letzten Glykogenspeicher. Hunger ist jetzt am stärksten — das geht vorbei.", tip:"Viel trinken! 2-3L Wasser. Leichte Bewegung hilft, Salz nicht vergessen." },
+  { day:2, name:"Übergang zur Ketose", emoji:"⚡", color:"#f97316", desc:"Glykogen wird knapp, Umschalten auf Fett beginnt. Müdigkeit und Brain Fog sind normal — das 'Keto-Flu'.", tip:"Elektrolyte! Natrium, Kalium, Magnesium. Nicht überanstrengen." },
+  { day:3, name:"Ketose aktiviert", emoji:"🧠", color:"#ef4444", desc:"Die härteste Hürde! Ketonproduktion startet. Hunger wird paradoxerweise WENIGER. Tag 3 geschafft = alles geschafft.", tip:"DER Wendepunkt. Durchhalten! Warmes Salzwasser hilft." },
+  { day:4, name:"Tiefe Ketose", emoji:"✨", color:"#a78bfa", desc:"Gehirn läuft auf Ketonen. Mentale Klarheit, überraschend viel Energie. Hunger meist verschwunden.", tip:"Genieße die Klarheit. Spaziergänge, produktive Arbeit — alles möglich." },
+  { day:5, name:"Autophagie-Peak", emoji:"♻️", color:"#22d3ee", desc:"Zelluläre Selbstreinigung auf Hochtouren. Beschädigte Zellteile werden recycelt. Du bist in der Zone.", tip:"Hydrated bleiben, Elektrolyte weiter. Über die Hälfte — Wahnsinn!" },
+  { day:6, name:"Tiefenreinigung", emoji:"💎", color:"#60a5fa", desc:"Autophagie setzt sich fort. Entzündungswerte sinken, Immunsystem regeneriert sich.", tip:"Fast geschafft. Refeed planen — Knochenbrühe, leichte Suppen." },
+  { day:7, name:"Finisher", emoji:"🏆", color:"#10b981", desc:"Letzter Tag! Du bist stärker als jeder Impuls. Tiefgreifende Reinigung abgeschlossen.", tip:"LANGSAM brechen! Knochenbrühe zuerst, dann leichte Suppe." }
+];
+
+function generatePhases(totalDays) {
+  if (totalDays <= 7) {
+    return PHASES_7.slice(0, totalDays).map((p, i) => ({...p, day: i+1}));
+  }
+  const phases = [];
+  // Day 1-3: same as base
+  for (let i = 0; i < Math.min(3, totalDays); i++) phases.push({...PHASES_7[i]});
+  if (totalDays <= 3) return phases;
+  // Day 4: ketose
+  phases.push({...PHASES_7[3]});
+  if (totalDays <= 4) return phases;
+  // Middle days: autophagie zone
+  const midDays = totalDays - 5;
+  for (let i = 0; i < midDays; i++) {
+    const d = 5 + i;
+    phases.push({ day: d, name: "Autophagie-Zone", emoji: "♻️", color: "#22d3ee",
+      desc: `Tag ${d}: Dein Körper ist voll im Autophagie-Modus. Zellerneuerung auf Hochtouren.`,
+      tip: "Elektrolyte, Hydration, leichte Bewegung. Du bist in der Zone." });
+  }
+  // Second to last: preparation
+  phases.push({ day: totalDays - 1, name: "Vorbereitung Refeed", emoji: "💎", color: "#60a5fa",
+    desc: "Morgen ist es soweit. Bereite dein Fastenbrechen vor.", tip: "Knochenbrühe besorgen, leichte Suppen planen." });
+  // Last day
+  phases.push({ day: totalDays, name: "Finisher", emoji: "🏆", color: "#10b981",
+    desc: `${totalDays} Tage geschafft! Unglaubliche Leistung.`, tip: "LANGSAM brechen! Knochenbrühe zuerst." });
+  return phases.map((p, i) => ({...p, day: i+1}));
+}
+
+const MOTIVATIONS = {
+  morning: [
+    "Neuer Tag, neuer Sieg. Dein Körper arbeitet FÜR dich.",
+    "Aufwachen ohne Frühstück-Stress. Einfach Wasser, einfach sein.",
+    "Jede Stunde ohne Essen = eine Stunde Heilung.",
+    "Du bist aufgewacht und machst weiter. Das ist Stärke.",
+    "Morgens bist du am stärksten. Nutze die Klarheit.",
+    "Dein Körper hat die ganze Nacht für dich gearbeitet.",
+    "Ein weiterer Morgen, ein weiterer Beweis deiner Disziplin.",
+    "Stell dir vor, wie du dich am letzten Tag fühlst. Halte das fest.",
+    "Wasser rein, Gifte raus. So einfach ist das heute.",
+    "Du hast gestern überlebt. Heute wird nicht anders."
+  ],
+  midday: [
+    "Mittagshunger? Nur Gewohnheit, kein Bedarf. Großes Glas Wasser.",
+    "Alle essen — du trainierst Disziplin. Respekt.",
+    "Hunger kommt in Wellen. Diese geht in 20 Minuten vorbei.",
+    "Dein Körper verbrennt Fett als Treibstoff. Lass ihn.",
+    "Die Mittagszeit ist der Test. Du bestehst ihn.",
+    "Statt Essen: ein Glas Wasser mit Salz. Fertig.",
+    "Dein Magen knurrt? Das ist der Sound der Veränderung.",
+    "Mittags schwächeln die meisten. Du nicht.",
+    "Schließ die Augen, atme durch, trink Wasser. Weiter geht's.",
+    "Jede überstandene Mahlzeit ist ein Sieg."
+  ],
+  afternoon: [
+    "Nachmittags-Tief? Normal. Wasser mit Salz hilft.",
+    "Halber Tag geschafft. Einer nach dem anderen.",
+    "Denk an deinen Grund. Der ist immer noch gültig.",
+    "Dein zukünftiges Ich dankt dir für diesen Moment.",
+    "Ablenkung ist dein Freund. Spaziergang, Arbeit, irgendwas.",
+    "Das Tief geht vorbei. Es geht IMMER vorbei.",
+    "Du bist weiter als heute morgen. Das zählt.",
+    "Elektrolyte checken. Oft ist Erschöpfung nur Salzmangel.",
+    "Jede Minute bringt dich dem Ziel näher.",
+    "Ruhig machen ist auch Leistung. Gönn dir Pause."
+  ],
+  evening: [
+    "Abend geschafft = Tag geschafft. Bald Schlafenszeit.",
+    "Noch ein Tag im Kasten. Du bist eine Maschine.",
+    "Früh schlafen = einfachste Fasten-Stunden.",
+    "Du hast heute NICHTS gegessen und funktionierst. Beeindruckend.",
+    "Gönn dir Ruhe. Morgen wachst du stärker auf.",
+    "Der Tag ist fast rum. Du hast ihn bezwungen.",
+    "Abends ist es schwer? Tee trinken, Augen zu, durchatmen.",
+    "Schlaf ist das mächtigste Fasten-Tool.",
+    "Gleich ist der Tag vorbei. Du hast durchgehalten.",
+    "Letzte Stunden. Morgen bist du einen ganzen Tag weiter."
+  ],
+  night: [
+    "Schlaf heilt. Autophagie, Regeneration, Reset.",
+    "Kannst nicht schlafen? Ruhig liegen ist auch Erholung.",
+    "Jede Stunde Schlaf = eine Stunde näher am Ziel.",
+    "Nachts arbeitet dein Körper am härtesten für dich.",
+    "Still liegen, atmen, loslassen. Der Morgen kommt."
+  ]
+};
+
+function getMotivation(seed) {
+  const h = new Date().getHours();
+  let pool;
+  if (h >= 6 && h < 11) pool = MOTIVATIONS.morning;
+  else if (h >= 11 && h < 14) pool = MOTIVATIONS.midday;
+  else if (h >= 14 && h < 18) pool = MOTIVATIONS.afternoon;
+  else if (h >= 18 && h < 22) pool = MOTIVATIONS.evening;
+  else pool = MOTIVATIONS.night;
+  return pool[Math.abs(seed) % pool.length];
+}
+
+const ELECTROLYTES = [
+  { name:"Natrium (Salz)", amount:"1-2 TL/Tag", how:"Im Wasser oder unter die Zunge", icon:"🧂" },
+  { name:"Kalium", amount:"200-400mg", how:"NoSalt/Lite Salt oder Supplement", icon:"⚡" },
+  { name:"Magnesium", amount:"200-400mg", how:"Citrat oder Glycinat", icon:"💊" }
+];
+
+const ALLOWED = ["Wasser (still & sprudel)","Schwarzer Kaffee (ohne alles)","Ungesüßter Tee","Salz & Elektrolyte","Warmes Wasser mit Zitrone (sparsam)"];
+const NOT_ALLOWED = ["Kalorien jeder Art","Milch/Sahne im Kaffee","Süßstoffe","Knochenbrühe (erst beim Brechen)","Kalorienhaltige Supplements"];
+const WARNINGS = ["Starker Schwindel der bleibt","Herzrasen / Rhythmusstörungen","Ohnmacht / Blackouts","Anhaltendes starkes Erbrechen","Starke Krämpfe trotz Elektrolyte"];
+const REFEED = [
+  "Stunde 0: Klare Knochenbrühe, warm, langsam",
+  "Stunde 2-3: Wassermelone oder Gurke",
+  "Stunde 4-6: Leichte Gemüsesuppe",
+  "Tag 2: Gedünstetes Gemüse, Avocado, kleine Portionen",
+  "Tag 3: Langsam normale Kost, weiter kleine Portionen"
+];
+
+// ─── STATE ──────────────────────────────────────────────
+let state = {
+  configured: false,
+  startDate: '', startTime: '00:00',
+  totalDays: 7,
+  notifyEnabled: false,
+  notifyInterval: 60, // minutes
+  motivSeed: 0,
+  checkins: {},
+  tab: 'tracker'
+};
+
+function loadState() {
+  try {
+    const s = localStorage.getItem('fasten_state');
+    if (s) state = {...state, ...JSON.parse(s)};
+  } catch(e) {}
+}
+function saveState() {
+  try { localStorage.setItem('fasten_state', JSON.stringify(state)); } catch(e) {}
+}
+
+// ─── NOTIFICATIONS ──────────────────────────────────────
+let notifTimer = null;
+
+async function requestNotifPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  const r = await Notification.requestPermission();
+  return r === 'granted';
+}
+
+function scheduleNotifications() {
+  clearInterval(notifTimer);
+  if (!state.notifyEnabled || !state.configured) return;
+  notifTimer = setInterval(() => {
+    if (!isRunning()) return;
+    const m = getMotivation(Date.now());
+    try {
+      new Notification('💧 Fasten Companion', { body: m, icon: '💧', tag: 'fasten-motiv', silent: false });
+    } catch(e) {
+      // SW notification fallback
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.showNotification('💧 Fasten Companion', { body: m, tag: 'fasten-motiv' });
+        });
+      }
+    }
+  }, state.notifyInterval * 60 * 1000);
+}
+
+function isRunning() {
+  if (!state.configured) return false;
+  const start = new Date(`${state.startDate}T${state.startTime}`);
+  const end = new Date(start.getTime() + state.totalDays * 86400000);
+  const now = new Date();
+  return now >= start && now < end;
+}
+
+// ─── RENDER ─────────────────────────────────────────────
+function h(tag, attrs, ...children) {
+  const el = document.createElement(tag);
+  if (attrs) Object.entries(attrs).forEach(([k,v]) => {
+    if (k === 'className') el.className = v;
+    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
+    else el.setAttribute(k, v);
+  });
+  children.flat(9).forEach(c => {
+    if (c == null) return;
+    el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  });
+  return el;
+}
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+  if (!state.configured) {
+    app.appendChild(renderSetup());
+  } else {
+    app.appendChild(renderMain());
+  }
+}
+
+function renderSetup() {
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+  return h('div', { className: 'scroll-area' },
+    h('div', { className: 'setup-hero' },
+      h('div', { className: 'setup-emoji' }, '💧'),
+      h('div', { className: 'setup-title' }, 'Fasten Companion'),
+      h('div', { className: 'setup-sub' }, 'Konfiguriere dein Wasserfasten')
+    ),
+    h('div', { className: 'card' },
+      h('div', { className: 'setting-group' },
+        h('div', { className: 'setting-label' }, 'Startdatum'),
+        h('input', { type: 'date', id: 'inp-date', value: state.startDate || tomorrow, min: today })
+      ),
+      h('div', { className: 'setting-group' },
+        h('div', { className: 'setting-label' }, 'Startzeit'),
+        h('input', { type: 'time', id: 'inp-time', value: state.startTime || '00:00' })
+      ),
+      h('div', { className: 'setting-group' },
+        h('div', { className: 'setting-label' }, 'Dauer (Tage)'),
+        h('div', { className: 'row-2' },
+          h('input', { type: 'number', id: 'inp-days', value: String(state.totalDays || 7), min: '1', max: '30' }),
+          h('select', { id: 'inp-preset', onChange: () => {
+            const v = document.getElementById('inp-preset').value;
+            if (v) document.getElementById('inp-days').value = v;
+          }},
+            h('option', { value: '' }, 'Preset...'),
+            h('option', { value: '1' }, '1 Tag'),
+            h('option', { value: '3' }, '3 Tage'),
+            h('option', { value: '5' }, '5 Tage'),
+            h('option', { value: '7' }, '7 Tage'),
+            h('option', { value: '10' }, '10 Tage'),
+            h('option', { value: '14' }, '14 Tage'),
+            h('option', { value: '21' }, '21 Tage')
+          )
+        ),
+        h('div', { className: 'setting-sub' }, '1-30 Tage möglich. Mehr als 7 nur mit Erfahrung!')
+      )
+    ),
+    h('div', { className: 'card' },
+      h('div', { className: 'label' }, 'BENACHRICHTIGUNGEN'),
+      h('div', { className: 'toggle-row' },
+        h('div', null,
+          h('div', { className: 'setting-label', style: { margin: '0' } }, 'Motivations-Pushes'),
+          h('div', { className: 'setting-sub', style: { margin: '0' } }, 'Regelmäßige Erinnerungen')
+        ),
+        h('button', { className: `toggle ${state.notifyEnabled ? 'on' : ''}`, id: 'toggle-notif',
+          onClick: async () => {
+            if (!state.notifyEnabled) {
+              const ok = await requestNotifPermission();
+              if (ok) { state.notifyEnabled = true; saveState(); render(); }
+            } else {
+              state.notifyEnabled = false; saveState(); render();
+            }
+          }
+        })
+      ),
+      state.notifyEnabled ? h('div', { className: 'setting-group', style: { marginTop: '14px' } },
+        h('div', { className: 'setting-label' }, 'Intervall (Minuten)'),
+        h('input', { type: 'number', id: 'inp-interval', value: String(state.notifyInterval), min: '5', max: '240' }),
+        h('div', { className: 'setting-sub' }, '5-240 Min. Empfohlen: 60 Min.')
+      ) : null
+    ),
+    h('div', { style: { marginTop: '10px' } },
+      h('button', { className: 'btn-primary', onClick: () => {
+        state.startDate = document.getElementById('inp-date').value;
+        state.startTime = document.getElementById('inp-time').value || '00:00';
+        state.totalDays = Math.max(1, Math.min(30, parseInt(document.getElementById('inp-days').value) || 7));
+        if (state.notifyEnabled) {
+          const iv = document.getElementById('inp-interval');
+          if (iv) state.notifyInterval = Math.max(5, Math.min(240, parseInt(iv.value) || 60));
+        }
+        state.configured = true;
+        saveState();
+        scheduleNotifications();
+        render();
+      }}, '💧 Fasten starten')
+    ),
+    h('div', { className: 'disclaimer' }, 'Kein Ersatz für ärztliche Beratung.\nBei Problemen sofort abbrechen.')
+  );
+}
+
+function renderMain() {
+  const start = new Date(`${state.startDate}T${state.startTime}`);
+  const end = new Date(start.getTime() + state.totalDays * 86400000);
+  const now = new Date();
+  const totalMs = end - start;
+  const elapsed = Math.max(0, now - start);
+  const remaining = Math.max(0, end - now);
+  const progress = Math.min(100, (elapsed / totalMs) * 100);
+  const started = now >= start;
+  const finished = now >= end;
+  const currentDay = Math.min(state.totalDays, Math.max(1, Math.ceil(elapsed / 86400000)));
+  const phases = generatePhases(state.totalDays);
+  const phase = phases[Math.min(currentDay - 1, phases.length - 1)];
+
+  const rH = Math.floor(remaining / 3600000);
+  const rM = Math.floor((remaining % 3600000) / 60000);
+  const rS = Math.floor((remaining % 60000) / 1000);
+  const eH = Math.floor(elapsed / 3600000);
+  const eM = Math.floor((elapsed % 3600000) / 60000);
+
+  const endStr = end.toLocaleDateString('de-DE', { day:'numeric', month:'long' });
+  const startStr = start.toLocaleDateString('de-DE', { day:'numeric', month:'long', year:'numeric' });
+
+  const todayKey = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
+
+  const frag = document.createDocumentFragment();
+
+  // Scroll area
+  const scroll = h('div', { className: 'scroll-area' });
+
+  // Header
+  scroll.appendChild(h('div', { className: 'header' },
+    h('div', { className: 'header-title' }, 'Wasserfasten'),
+    h('div', { className: 'header-dates' }, `${start.toLocaleDateString('de-DE',{day:'numeric',month:'short'})} – ${end.toLocaleDateString('de-DE',{day:'numeric',month:'short',year:'numeric'})}`),
+    h('div', { className: 'header-sub' }, `${state.totalDays} Tage · ${state.totalDays * 24} Stunden`)
+  ));
+
+  const tabs = { tracker:'tracker', phases:'phases', rules:'rules', refeed:'refeed', config:'config' };
+
+  // Tab content
+  if (state.tab === 'tracker') {
+    // Timer
+    if (!started) {
+      scroll.appendChild(h('div', { className: 'card', style: { textAlign: 'center', padding: '30px 20px' } },
+        h('div', { style: { fontSize: '48px', marginBottom: '8px' } }, '🧘'),
+        h('div', { style: { fontSize: '17px', fontWeight: '600' } }, 'Startet am ' + startStr),
+        h('div', { style: { fontSize: '12px', color: 'var(--text2)', marginTop: '8px' } },
+          'Letzte Mahlzeit vorher genießen. Dann nur noch Wasser.')
+      ));
+    } else if (finished) {
+      scroll.appendChild(h('div', { className: 'card finish-card' },
+        h('div', { className: 'finish-emoji' }, '🏆'),
+        h('div', { className: 'finish-title' }, `${state.totalDays} TAGE GESCHAFFT!`),
+        h('div', { className: 'finish-sub' }, 'Wasserfasten abgeschlossen. Absolute Leistung.\nJetzt langsam und vorsichtig Refeed starten.')
+      ));
+    } else {
+      // Active timer
+      const timerCard = h('div', { className: 'card pulse' });
+      timerCard.appendChild(h('div', { className: 'timer-display' },
+        `${String(rH).padStart(2,'0')}:${String(rM).padStart(2,'0')}:${String(rS).padStart(2,'0')}`));
+      timerCard.appendChild(h('div', { className: 'timer-sub' }, 'verbleibend'));
+      timerCard.appendChild(h('div', { style: { textAlign:'center', marginTop:'12px', fontSize:'13px', color:'var(--text2)', fontFamily:'var(--mono)' } },
+        `${eH}h ${eM}m gefastet · Tag ${currentDay}/${state.totalDays}`));
+
+      // Progress bar
+      const track = h('div', { className: 'progress-track' });
+      const fill = h('div', { className: 'progress-fill', style: { width: progress+'%', background: `linear-gradient(90deg, ${phase.color}, ${phase.color}aa)` } });
+      track.appendChild(fill);
+      timerCard.appendChild(track);
+
+      // Day dots (max 14 shown)
+      if (state.totalDays <= 14) {
+        const dots = h('div', { className: 'day-dots' });
+        for (let i = 1; i <= state.totalDays; i++) {
+          const cls = i < currentDay ? 'day-dot done' : i === currentDay ? 'day-dot current' : 'day-dot';
+          dots.appendChild(h('div', { className: cls }, i < currentDay ? '✓' : String(i)));
+        }
+        timerCard.appendChild(dots);
+      }
+      scroll.appendChild(timerCard);
+
+      // Current phase
+      const phaseCard = h('div', { className: 'card', style: { borderLeft: `3px solid ${phase.color}` } });
+      phaseCard.appendChild(h('div', { style: { display:'flex', alignItems:'center', gap:'10px', marginBottom:'8px' } },
+        h('span', { style: { fontSize:'22px' } }, phase.emoji),
+        h('div', null,
+          h('div', { style: { fontSize:'14px', fontWeight:'600' } }, `Tag ${currentDay}: ${phase.name}`)
+        )
+      ));
+      phaseCard.appendChild(h('div', { style: { fontSize:'12.5px', color:'var(--text2)', lineHeight:'1.6', marginBottom:'10px' } }, phase.desc));
+      phaseCard.appendChild(h('div', { style: { fontSize:'11.5px', color:phase.color, background:phase.color+'12', padding:'8px 12px', borderRadius:'8px' } }, '💡 ' + phase.tip));
+      scroll.appendChild(phaseCard);
+
+      // Motivation
+      const motivCard = h('div', { className: 'motiv-box' });
+      motivCard.appendChild(h('div', { className: 'label' }, 'MOTIVATION'));
+      motivCard.appendChild(h('div', { className: 'motiv-text' }, '„' + getMotivation(state.motivSeed + currentDay) + '"'));
+      motivCard.appendChild(h('button', { className: 'motiv-refresh', onClick: () => {
+        state.motivSeed++; saveState(); render();
+      } }, '🔄 Neue Motivation'));
+      scroll.appendChild(motivCard);
+
+      // Check-in
+      const checkinCard = h('div', { className: 'card' });
+      checkinCard.appendChild(h('div', { className: 'label' }, 'TAGES CHECK-IN'));
+      if (state.checkins[todayKey]) {
+        checkinCard.appendChild(h('div', { style: { fontSize:'13px', color:'var(--accent)' } }, '✅ ' + state.checkins[todayKey]));
+      } else {
+        const grid = h('div', { className: 'mood-grid' });
+        ['💪 Stark','😤 Kämpfe','🧘 Ruhig','😵 Schwer','🔥 Motiviert','😴 Müde'].forEach(m => {
+          grid.appendChild(h('button', { className: 'mood-btn', onClick: () => {
+            state.checkins[todayKey] = m; saveState(); render();
+          } }, m));
+        });
+        checkinCard.appendChild(grid);
+      }
+      scroll.appendChild(checkinCard);
+
+      // Elektrolyte
+      const elecCard = h('div', { className: 'card' });
+      elecCard.appendChild(h('div', { className: 'label' }, 'ELEKTROLYTE'));
+      ELECTROLYTES.forEach(e => {
+        elecCard.appendChild(h('div', { className: 'elec-row' },
+          h('span', { className: 'elec-icon' }, e.icon),
+          h('div', null,
+            h('div', { className: 'elec-name' }, e.name),
+            h('div', { className: 'elec-detail' }, e.amount + ' — ' + e.how)
+          )
+        ));
+      });
+      scroll.appendChild(elecCard);
+    }
+
+  } else if (state.tab === 'phases') {
+    const phases = generatePhases(state.totalDays);
+    const card = h('div', { className: 'card' });
+    card.appendChild(h('div', { className: 'label' }, `PHASEN · ${state.totalDays} TAGE`));
+    phases.forEach((p, i) => {
+      const isNow = started && !finished && currentDay === i + 1;
+      const done = started && currentDay > i + 1;
+      const item = h('div', { className: 'phase-item', style: { opacity: done ? '0.5' : '1' } });
+      const head = h('div', { className: 'phase-head' },
+        h('span', { className: 'phase-emoji' }, p.emoji),
+        h('span', { className: 'phase-name' }, `Tag ${p.day}: ${p.name}`)
+      );
+      if (isNow) head.appendChild(h('span', { className:'phase-tag', style:{ background:p.color, color:'#000' }}, 'JETZT'));
+      if (done) head.appendChild(h('span', { style:{ color:'var(--accent)', fontSize:'14px' }}, '✓'));
+      item.appendChild(head);
+      item.appendChild(h('div', { className: 'phase-desc' }, p.desc));
+      item.appendChild(h('div', { className: 'phase-tip' }, '💡 ' + p.tip));
+      card.appendChild(item);
+    });
+    scroll.appendChild(card);
+
+  } else if (state.tab === 'rules') {
+    const c1 = h('div', { className: 'card' });
+    c1.appendChild(h('div', { className: 'label', style: { color: 'var(--accent)' } }, '✅ ERLAUBT'));
+    ALLOWED.forEach(a => c1.appendChild(h('div', { className: 'list-item' }, a)));
+    scroll.appendChild(c1);
+
+    const c2 = h('div', { className: 'card' });
+    c2.appendChild(h('div', { className: 'label', style: { color: 'var(--danger)' } }, '❌ NICHT ERLAUBT'));
+    NOT_ALLOWED.forEach(a => c2.appendChild(h('div', { className: 'list-item' }, a)));
+    scroll.appendChild(c2);
+
+    const c3 = h('div', { className: 'card' });
+    c3.appendChild(h('div', { className: 'label', style: { color: 'var(--warn)' } }, '⚠️ SOFORT ABBRECHEN BEI'));
+    WARNINGS.forEach(w => c3.appendChild(h('div', { className: 'warn-item' }, '⚠ ' + w)));
+    scroll.appendChild(c3);
+
+  } else if (state.tab === 'refeed') {
+    const c1 = h('div', { className: 'card' });
+    c1.appendChild(h('div', { className: 'label' }, 'FASTENBRECHEN — SCHRITT FÜR SCHRITT'));
+    c1.appendChild(h('div', { style: { fontSize:'12px', color:'var(--text2)', marginBottom:'14px', lineHeight:'1.6' } },
+      'Nach langem Fasten ist dein Verdauungssystem im Ruhemodus. Falsches Brechen kann gefährlich sein (Refeeding-Syndrom). Langsam!'));
+    REFEED.forEach((r, i) => {
+      c1.appendChild(h('div', { style: { display:'flex', gap:'10px', padding:'10px 0', borderBottom: i < REFEED.length-1 ? '1px solid var(--border)' : 'none' } },
+        h('div', { style: { width:'24px', height:'24px', borderRadius:'50%', background:'var(--surface2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:'700', color:'var(--accent)', flexShrink:'0' }}, String(i+1)),
+        h('div', { style: { fontSize:'12.5px', color:'var(--text2)', lineHeight:'1.5' }}, r)
+      ));
+    });
+    scroll.appendChild(c1);
+
+    const c2 = h('div', { className: 'card', style: { borderLeft: '3px solid var(--danger)' } });
+    c2.appendChild(h('div', { style: { fontSize:'13px', fontWeight:'600', color:'var(--danger)', marginBottom:'6px' }}, '⛔ NICHT als erstes essen'));
+    c2.appendChild(h('div', { style: { fontSize:'12px', color:'var(--text2)', lineHeight:'1.6' }},
+      'Fleisch, Milchprodukte, Nüsse, rohes Gemüse, Brot, Zucker, Alkohol, große Portionen. Dein Magen braucht 2-3 Tage.'));
+    scroll.appendChild(c2);
+
+  } else if (state.tab === 'config') {
+    const c1 = h('div', { className: 'card' });
+    c1.appendChild(h('div', { className: 'label' }, 'EINSTELLUNGEN'));
+
+    // Notification toggle
+    c1.appendChild(h('div', { className: 'toggle-row' },
+      h('div', null,
+        h('div', { style: { fontSize:'13px', fontWeight:'500' }}, 'Push-Motivationen'),
+        h('div', { style: { fontSize:'11px', color:'var(--text2)' }}, `Alle ${state.notifyInterval} Min.`)
+      ),
+      h('button', { className: `toggle ${state.notifyEnabled ? 'on' : ''}`, onClick: async () => {
+        if (!state.notifyEnabled) {
+          const ok = await requestNotifPermission();
+          if (ok) { state.notifyEnabled = true; saveState(); scheduleNotifications(); render(); }
+        } else {
+          state.notifyEnabled = false; saveState(); clearInterval(notifTimer); render();
+        }
+      }})
+    ));
+
+    if (state.notifyEnabled) {
+      c1.appendChild(h('div', { className: 'setting-group', style: { marginTop:'12px' }},
+        h('div', { className: 'setting-label' }, 'Intervall (Minuten)'),
+        h('input', { type:'number', id:'cfg-interval', value: String(state.notifyInterval), min:'5', max:'240' }),
+        h('button', { className:'btn-secondary', style:{ marginTop:'8px' }, onClick: () => {
+          const v = parseInt(document.getElementById('cfg-interval').value) || 60;
+          state.notifyInterval = Math.max(5, Math.min(240, v));
+          saveState(); scheduleNotifications(); render();
+        }}, 'Intervall speichern')
+      ));
+    }
+    scroll.appendChild(c1);
+
+    // Stats
+    if (started) {
+      const statsCard = h('div', { className: 'card' });
+      statsCard.appendChild(h('div', { className: 'label' }, 'STATISTIK'));
+      const checkinCount = Object.keys(state.checkins).length;
+      statsCard.appendChild(h('div', { className: 'list-item' }, `📊 Check-ins: ${checkinCount}/${state.totalDays}`));
+      statsCard.appendChild(h('div', { className: 'list-item' }, `⏱ Gefastet: ${eH}h ${eM}m`));
+      statsCard.appendChild(h('div', { className: 'list-item' }, `📅 Tag: ${currentDay}/${state.totalDays}`));
+      statsCard.appendChild(h('div', { className: 'list-item' }, `💧 Empfohlenes Wasser heute: 2-3 Liter`));
+      scroll.appendChild(statsCard);
+    }
+
+    // Reset
+    const resetCard = h('div', { className: 'card' });
+    resetCard.appendChild(h('div', { className: 'label' }, 'FASTEN RESET'));
+    resetCard.appendChild(h('button', { className: 'btn-secondary', onClick: () => {
+      state.configured = false;
+      state.checkins = {};
+      state.motivSeed = 0;
+      saveState();
+      clearInterval(notifTimer);
+      render();
+    }}, '🔄 Neues Fasten konfigurieren'));
+    resetCard.appendChild(h('button', { className: 'btn-danger', onClick: () => {
+      if (confirm('Wirklich alle Daten löschen?')) {
+        localStorage.removeItem('fasten_state');
+        state = { configured:false, startDate:'', startTime:'00:00', totalDays:7, notifyEnabled:false, notifyInterval:60, motivSeed:0, checkins:{}, tab:'tracker' };
+        clearInterval(notifTimer);
+        render();
+      }
+    }}, '🗑 Alle Daten löschen'));
+    scroll.appendChild(resetCard);
+  }
+
+  scroll.appendChild(h('div', { className: 'disclaimer' }, 'Kein Ersatz für ärztliche Beratung · Bei Problemen sofort abbrechen'));
+  frag.appendChild(scroll);
+
+  // Tab bar
+  const tabBar = h('div', { className: 'tab-bar' });
+  [
+    ['tracker', '⏱', 'Timer'],
+    ['phases', '🔬', 'Phasen'],
+    ['rules', '📋', 'Regeln'],
+    ['refeed', '🍽', 'Refeed'],
+    ['config', '⚙️', 'Setup']
+  ].forEach(([id, icon, label]) => {
+    tabBar.appendChild(h('button', {
+      className: `tab-btn ${state.tab === id ? 'active' : ''}`,
+      onClick: () => { state.tab = id; saveState(); render(); }
+    },
+      h('span', { className: 'icon' }, icon),
+      label
+    ));
+  });
+  frag.appendChild(tabBar);
+
+  return frag;
+}
+
+// ─── INIT ───────────────────────────────────────────────
+loadState();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+render();
+// Update timer every second
+setInterval(render, 1000);
+scheduleNotifications();
+</script>
+</body>
+</html>

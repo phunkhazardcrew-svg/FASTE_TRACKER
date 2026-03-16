@@ -161,13 +161,24 @@ function save(){try{localStorage.setItem('fc3',JSON.stringify(S));}catch(e){}}
 // ─── NOTIFICATIONS ───────────────────────────────────
 let nTimer=null;
 async function reqN(){if(!('Notification' in window))return false;if(Notification.permission==='granted')return true;return(await Notification.requestPermission())==='granted';}
+function sendNotif(msg){
+  // Try via Service Worker (works in background on Android)
+  if(navigator.serviceWorker&&navigator.serviceWorker.controller){
+    navigator.serviceWorker.controller.postMessage({type:'SHOW_NOTIF',body:msg});
+    return;
+  }
+  // Fallback: direct notification (only works when page is open)
+  try{new Notification('💧 Fasten',{body:msg,tag:'fm'});}catch(e){}
+}
 function schedN(){
   clearInterval(nTimer);if(!S.notifyOn||!S.configured)return;
+  // Send first motivation 5 seconds after enabling
+  setTimeout(()=>{
+    const t=calc();if(t.on&&!t.done)sendNotif(getMotiv(Date.now()));
+  },5000);
   nTimer=setInterval(()=>{
-    const now=new Date(),s=new Date(S.startDate+'T'+S.startTime),e=new Date(s.getTime()+S.totalDays*864e5);
-    if(now<s||now>=e)return;
-    const m=getMotiv(Date.now());
-    try{new Notification('💧 Fasten',{body:m,tag:'fm'});}catch(e){}
+    const t=calc();if(!t.on||t.done)return;
+    sendNotif(getMotiv(Date.now()));
   },S.notifyMin*6e4);
 }
 
@@ -345,10 +356,16 @@ function tick(){
 }
 
 // ─── INIT ────────────────────────────────────────────
-// Unregister old service workers & clear caches to fix stale versions
+// Register service worker for notifications + offline support
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(r=>{r.forEach(x=>x.unregister());});
-  if(window.caches)caches.keys().then(k=>{k.forEach(x=>caches.delete(x));});
+  // First clear old caches from broken v1
+  if(window.caches)caches.keys().then(k=>{k.forEach(x=>{if(x!=='fasten-v3')caches.delete(x);});});
+  // Register new SW
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    console.log('SW registered');
+    // Check for updates every 5 min
+    setInterval(()=>reg.update(),3e5);
+  }).catch(e=>console.log('SW failed',e));
 }
 
 renderPage();

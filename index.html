@@ -667,15 +667,20 @@ function renderMain() {
     } else {
       // Active timer
       const timerCard = h('div', { className: 'card pulse' });
-      timerCard.appendChild(h('div', { className: 'timer-display' },
-        `${String(rH).padStart(2,'0')}:${String(rM).padStart(2,'0')}:${String(rS).padStart(2,'0')}`));
+      const timerDisp = h('div', { className: 'timer-display' },
+        `${String(rH).padStart(2,'0')}:${String(rM).padStart(2,'0')}:${String(rS).padStart(2,'0')}`);
+      timerDisp.id = 'live-timer';
+      timerCard.appendChild(timerDisp);
       timerCard.appendChild(h('div', { className: 'timer-sub' }, 'verbleibend'));
-      timerCard.appendChild(h('div', { style: { textAlign:'center', marginTop:'12px', fontSize:'13px', color:'var(--text2)', fontFamily:'var(--mono)' } },
-        `${eH}h ${eM}m gefastet · Tag ${currentDay}/${state.totalDays}`));
+      const timerStat = h('div', { style: { textAlign:'center', marginTop:'12px', fontSize:'13px', color:'var(--text2)', fontFamily:'var(--mono)' } },
+        `${eH}h ${eM}m gefastet · Tag ${currentDay}/${state.totalDays}`);
+      timerStat.id = 'live-stat';
+      timerCard.appendChild(timerStat);
 
       // Progress bar
       const track = h('div', { className: 'progress-track' });
       const fill = h('div', { className: 'progress-fill', style: { width: progress+'%', background: `linear-gradient(90deg, ${phase.color}, ${phase.color}aa)` } });
+      fill.id = 'live-progress';
       track.appendChild(fill);
       timerCard.appendChild(track);
 
@@ -898,8 +903,42 @@ if ('serviceWorker' in navigator) {
 }
 
 render();
-// Update timer every second
-setInterval(render, 1000);
+
+// Lightweight timer tick — only updates text, no DOM rebuild
+function tickTimer() {
+  const el = document.getElementById('live-timer');
+  if (!el || !state.configured) return;
+  const start = new Date(`${state.startDate}T${state.startTime}`);
+  const end = new Date(start.getTime() + state.totalDays * 86400000);
+  const now = new Date();
+  const elapsed = Math.max(0, now - start);
+  const remaining = Math.max(0, end - now);
+  const totalMs = end - start;
+  const progress = Math.min(100, (elapsed / totalMs) * 100);
+
+  const rH = Math.floor(remaining / 3600000);
+  const rM = Math.floor((remaining % 3600000) / 60000);
+  const rS = Math.floor((remaining % 60000) / 1000);
+  const eH = Math.floor(elapsed / 3600000);
+  const eM = Math.floor((elapsed % 3600000) / 60000);
+  const currentDay = Math.min(state.totalDays, Math.max(1, Math.ceil(elapsed / 86400000)));
+
+  el.textContent = `${String(rH).padStart(2,'0')}:${String(rM).padStart(2,'0')}:${String(rS).padStart(2,'0')}`;
+
+  const stat = document.getElementById('live-stat');
+  if (stat) stat.textContent = `${eH}h ${eM}m gefastet · Tag ${currentDay}/${state.totalDays}`;
+
+  const prog = document.getElementById('live-progress');
+  if (prog) prog.style.width = progress + '%';
+
+  // If the fast just finished or day changed, do a full re-render
+  if (remaining <= 0 || currentDay !== window._lastDay) {
+    window._lastDay = currentDay;
+    render();
+  }
+}
+window._lastDay = 0;
+setInterval(tickTimer, 1000);
 scheduleNotifications();
 </script>
 </body>
